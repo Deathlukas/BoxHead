@@ -8,6 +8,7 @@ img_dir = path.join(path.dirname(__file__), 'Image')
 
 pygame.init()
 
+FPS = 60
 black = [0,0,0]
 white = [255,255,255]
 green = [0,200,0]
@@ -23,10 +24,71 @@ screen = pygame.display.set_mode((screen_width,screen_height),)
 pygame.display.set_caption('BoxHead')
 clock = pygame.time.Clock()
 
-playerImg = pygame.image.load(path.join(img_dir,"mand.png"))
 
-def player1(x,y):
-    screen.blit(playerImg,(x,y))
+playerImg = pygame.image.load(path.join(img_dir,"mand_0.png"))
+enemyIMG = pygame.image.load(path.join(img_dir,"enemy_1.png"))
+Bane1 = pygame.image.load(path.join(img_dir,"Bane1.png"))
+Bane1_rect = Bane1.get_rect()
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self,image):
+        super().__init__()
+        # Player scaling
+        self.image = pygame.transform.scale(playerImg, (100,100))
+        self.image.set_colorkey(black)
+        self.rect = self.image.get_rect()
+
+        self.rect.centerx = screen_width / 2
+        self.rect.bottom = screen_height - 10
+
+        self.speedx = 0
+        self.speedy = 0
+    def update(self):
+        # Function for updating the player, while playing
+        self.speedx = 0
+        self.speedy = 0
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.speedx = -1
+        if keys[pygame.K_RIGHT]:
+            self.speedx = 1
+        if keys[pygame.K_UP]:
+            self.speedy = -1
+        if keys[pygame.K_DOWN]:
+            self.speedy = 1
+        # boundary checking
+        if self.rect.right > screen_width:
+            self.rect.right = screen_width
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > screen_height:
+            self.rect.bottom = screen_height
+
+        # updating the movement
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self,image):
+        super().__init__()
+        self.image = pygame.transform.scale(enemyIMG, (100,100))
+        self.rect = self.image.get_rect()
+
+        # Spawn location for enemies
+        self.rect.centerx = screen_width / 2
+        self.rect.bottom = screen_height - 10
+
+        # enemies speed
+        self.speedx = 0
+        self.speedy = 0
+    def update(self):
+        # update enemies
+        self.rect.y += self.speedy
+        self.rect.x += self.speedx
+
+
 
 def button(msg,x,y,w,h,ic,ac,action=None):
         mouse = pygame.mouse.get_pos()
@@ -35,7 +97,7 @@ def button(msg,x,y,w,h,ic,ac,action=None):
             pygame.draw.rect(screen, ac, (x,y,w,h))
             if click[0] == 1 and action != None:
                 if action == "play":
-                    game_loop()
+                    main()
                 elif action == "quit":
                     pygame.quit()
                     quit()
@@ -72,61 +134,40 @@ def game_intro():
         screen.blit(textSurf, textRect)
 
 
-        button("Start",150,450,100,50,green,bright_green,"play")
+        button("Bane 1",150,450,100,50,green,bright_green,"play")
+        button("Bane 2", 260,450,100,50,green,bright_green,"play")
         button("Quit",550,450,100,50,red,bright_red,"quit")
-
 
         pygame.display.update()
         clock.tick(15)
-# Her er mit game loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
 
-def game_loop():
-    x = (450)
-    y = (350)
+all_active_sprites = pygame.sprite.Group()
+enemy = Enemy(enemyIMG)
+player = Player(playerImg)
+all_active_sprites.add(player)
+all_active_sprites.add(enemy)
 
-    x_change = 0
-    y_change = 0
+def main():
 
-    gameExit  = False
+    running = True
 
-    while not gameExit:
+    while running:
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                gameExit = True
-
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    x_change = -5
-                    y_change = 0
-                elif event.key == pygame.K_RIGHT:
-                    x_change = 5
-                    y_change = 0
-                elif event.key == pygame.K_UP:
-                    y_change = -5
-                    x_change = 0
-                elif event.key == pygame.K_DOWN:
-                    y_change = 5
-                    x_change = 0
+                if event.key == pygame.K_ESCAPE:
+                    running = False
 
-        x += x_change
-        y += y_change
-        screen.fill(white)
-        player1(x,y)
+        all_active_sprites.update()
+
+        screen.blit(Bane1,Bane1_rect)
+        all_active_sprites.draw(screen)
 
 
-
-        pygame.display.update()
-        clock.tick(60)
+        pygame.display.flip()
 
 
 game_intro()
-game_loop()
+main()
 pygame.quit()
 quit()
