@@ -30,16 +30,13 @@ clock = pygame.time.Clock()
 playerImg = pygame.image.load(path.join(img_dir,"mand_0.png"))
 enemyIMG = pygame.image.load(path.join(img_dir,"enemy_1.png"))
 bulletImg = pygame.image.load(path.join(img_dir, "bullet.png"))
-Bane1 = pygame.image.load(path.join(img_dir,"Bane1.png"))
-Bane1_rect = Bane1.get_rect()
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((32, 32))
-
         self.image.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(self.image, pygame.Color('dodgerblue'), ((0,0), (32, 16), (0, 32)))
+        self.image = playerImg
         self.org_image = self.image.copy()
         self.angle = 0
         self.direction = pygame.Vector2(1, 0)
@@ -60,13 +57,23 @@ class Player(pygame.sprite.Sprite):
         if pressed[pygame.K_RIGHT]:
             self.angle -= 3
         if pressed[pygame.K_w]:
-            self.speedy -= 1
+            self.speedy -= 2
         if pressed[pygame.K_s]:
-            self.speedy += 1
+            self.speedy += 2
         if pressed[pygame.K_a]:
-            self.speedx -= 1
+            self.speedx -= 2
         if pressed[pygame.K_d]:
-            self.speedx += 1
+            self.speedx += 2
+
+         # boundary checking
+        if self.rect.right > screen_width:
+            self.rect.right = screen_width
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > screen_height:
+            self.rect.bottom = screen_height
 
         self.direction = pygame.Vector2(1, 0).rotate(-self.angle)
         self.image = pygame.transform.rotate(self.org_image, self.angle)
@@ -78,20 +85,37 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,image):
         super().__init__()
-        self.image = pygame.transform.scale(enemyIMG, (100,100))
+        self.image = pygame.transform.scale(enemyIMG, (10,10))
         self.rect = self.image.get_rect()
 
         # Spawn location for enemies
-        self.rect.centerx = screen_width / 2
-        self.rect.bottom = screen_height - 150
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(0,800)
+        self.rect.y = random.randrange(0,200)
+        self.speedy = random.randrange(5,8)
+        self.speedx = random.randrange(5,8)
 
-        # enemies speed
-        self.speedx = 0
-        self.speedy = 0
     def update(self):
-        # update enemies
-        self.rect.y += self.speedy
         self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        if self.rect.top > screen_height + 10:
+            self.rect.x = random.randrange(0,800)
+            self.rect.y = random.randrange(0,200)
+            self.speedy = random.randrange(5,8)
+            self.speedx = random.randrange(5,8)
+         # boundary checking
+        if self.rect.right > screen_width:
+            self.rect.right = screen_width
+            self.speex = -self.speedx
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.speed = -self.speedx
+        if self.rect.top < 0:
+            self.rect.top = 0
+            self.speedy = -self.speedy
+        if self.rect.bottom > screen_height:
+            self.rect.bottom = screen_height - 100
+            self.speedy = -self.speedy
 
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, pos, direction):
@@ -162,14 +186,18 @@ def game_intro():
         clock.tick(15)
 
 all_active_sprites = pygame.sprite.Group()
+sprites = pygame.sprite.Group(Player())
 bullets = pygame.sprite.Group()
-enemy = Enemy(enemyIMG)
-all_active_sprites.add(enemy)
+enemy = pygame.sprite.Group()
+for i in range(8):
+    m = Enemy(enemyIMG)
+    all_active_sprites.add(m)
+    enemy.add(m)
 
+running = True
 def main():
 
     pygame.init()
-    sprites = pygame.sprite.Group(Player())
     clock = pygame.time.Clock()
     dt = 0
 
@@ -178,7 +206,20 @@ def main():
         for e in events:
             if e.type == pygame.QUIT:
                 return
+
+        hits = pygame.sprite.groupcollide(sprites, enemy, True, True)
+        for hit in hits:
+            m = Enemy(enemyIMG)
+            all_active_sprites.add(m)
+            enemy.add(m)
+
+        hits = pygame.sprite.groupcollide(sprites, enemy, False, True)
+        if hits:
+            return game_intro()
+
         sprites.update(events, dt)
+        all_active_sprites.update()
+
         screen.fill(white)
         sprites.draw(screen)
         all_active_sprites.draw(screen)
