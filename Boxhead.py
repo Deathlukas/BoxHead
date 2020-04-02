@@ -1,6 +1,8 @@
 import pygame
 import time
 import random
+import math
+from pygame.math import Vector2
 from os import path
 
 # Kommando til at finde path til billeder
@@ -27,48 +29,51 @@ clock = pygame.time.Clock()
 
 playerImg = pygame.image.load(path.join(img_dir,"mand_0.png"))
 enemyIMG = pygame.image.load(path.join(img_dir,"enemy_1.png"))
+bulletImg = pygame.image.load(path.join(img_dir, "bullet.png"))
 Bane1 = pygame.image.load(path.join(img_dir,"Bane1.png"))
 Bane1_rect = Bane1.get_rect()
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self,image):
+    def __init__(self):
         super().__init__()
-        # Player scaling
-        self.image = pygame.transform.scale(playerImg, (100,100))
-        self.image.set_colorkey(black)
-        self.rect = self.image.get_rect()
+        self.image = pygame.Surface((32, 32))
 
-        self.rect.centerx = screen_width / 2
-        self.rect.bottom = screen_height - 10
-
-        self.speedx = 0
+        self.image.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(self.image, pygame.Color('dodgerblue'), ((0,0), (32, 16), (0, 32)))
+        self.org_image = self.image.copy()
+        self.angle = 0
+        self.direction = pygame.Vector2(1, 0)
+        self.rect = self.image.get_rect(center=(screen_width/2, screen_height - 30))
+        self.pos = pygame.Vector2(self.rect.center)
         self.speedy = 0
-    def update(self):
-        # Function for updating the player, while playing
         self.speedx = 0
+    def update(self, events, dt):
         self.speedy = 0
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.speedx = -1
-        if keys[pygame.K_RIGHT]:
-            self.speedx = 1
-        if keys[pygame.K_UP]:
-            self.speedy = -1
-        if keys[pygame.K_DOWN]:
-            self.speedy = 1
-        # boundary checking
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height
+        self.speedx = 0
+        for e in events:
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_SPACE:
+                    self.groups()[0].add(Projectile(self.rect.center, self.direction.normalize()))
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_LEFT]:
+            self.angle += 3
+        if pressed[pygame.K_RIGHT]:
+            self.angle -= 3
+        if pressed[pygame.K_w]:
+            self.speedy -= 1
+        if pressed[pygame.K_s]:
+            self.speedy += 1
+        if pressed[pygame.K_a]:
+            self.speedx -= 1
+        if pressed[pygame.K_d]:
+            self.speedx += 1
 
-        # updating the movement
-        self.rect.x += self.speedx
+        self.direction = pygame.Vector2(1, 0).rotate(-self.angle)
+        self.image = pygame.transform.rotate(self.org_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
         self.rect.y += self.speedy
+        self.rect.x += self.speedx
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,image):
@@ -78,7 +83,7 @@ class Enemy(pygame.sprite.Sprite):
 
         # Spawn location for enemies
         self.rect.centerx = screen_width / 2
-        self.rect.bottom = screen_height - 10
+        self.rect.bottom = screen_height - 150
 
         # enemies speed
         self.speedx = 0
@@ -88,7 +93,22 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y += self.speedy
         self.rect.x += self.speedx
 
+class Projectile(pygame.sprite.Sprite):
+    def __init__(self, pos, direction):
+        super().__init__()
+        self.image = pygame.Surface((8, 8))
+        self.image.fill((0, 0, 0))
+        self.image.set_colorkey((0, 0, 0))
+        pygame.draw.circle(self.image, pygame.Color('orange'), (4, 4), 4)
+        self.rect = self.image.get_rect(center=pos)
+        self.direction = direction
+        self.pos = pygame.Vector2(self.rect.center)
 
+    def update(self, events, dt):
+        self.pos += self.direction * dt
+        self.rect.center = self.pos
+        if not pygame.display.get_surface().get_rect().contains(self.rect):
+            self.kill()
 
 def button(msg,x,y,w,h,ic,ac,action=None):
         mouse = pygame.mouse.get_pos()
@@ -142,29 +162,29 @@ def game_intro():
         clock.tick(15)
 
 all_active_sprites = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
 enemy = Enemy(enemyIMG)
-player = Player(playerImg)
-all_active_sprites.add(player)
 all_active_sprites.add(enemy)
 
 def main():
 
-    running = True
+    pygame.init()
+    sprites = pygame.sprite.Group(Player())
+    clock = pygame.time.Clock()
+    dt = 0
 
-    while running:
-
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-
-        all_active_sprites.update()
-
-        screen.blit(Bane1,Bane1_rect)
+    while True:
+        events = pygame.event.get()
+        for e in events:
+            if e.type == pygame.QUIT:
+                return
+        sprites.update(events, dt)
+        screen.fill(white)
+        sprites.draw(screen)
         all_active_sprites.draw(screen)
+        pygame.display.update()
+        dt = clock.tick(60)
 
-
-        pygame.display.flip()
 
 
 game_intro()
