@@ -92,8 +92,8 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = random.randrange(0,800)
         self.rect.y = random.randrange(0,200)
-        self.speedy = random.randrange(5,8)
-        self.speedx = random.randrange(5,8)
+        self.speedy = random.randrange(2,3)
+        self.speedx = random.randrange(2,3)
 
     def update(self):
         self.rect.x += self.speedx
@@ -101,20 +101,21 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.top > screen_height + 10:
             self.rect.x = random.randrange(0,800)
             self.rect.y = random.randrange(0,200)
-            self.speedy = random.randrange(5,8)
-            self.speedx = random.randrange(5,8)
+            self.speedy = random.randrange(2,3)
+            self.speedx = random.randrange(2,3)
+
          # boundary checking
         if self.rect.right > screen_width:
             self.rect.right = screen_width
-            self.speex = -self.speedx
+            self.speedx = -self.speedx
         if self.rect.left < 0:
             self.rect.left = 0
-            self.speed = -self.speedx
+            self.speedx = -self.speedx
         if self.rect.top < 0:
             self.rect.top = 0
             self.speedy = -self.speedy
         if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height - 100
+            self.rect.bottom = screen_height
             self.speedy = -self.speedy
 
 class Projectile(pygame.sprite.Sprite):
@@ -160,6 +161,14 @@ def text_objects(text, font):
     textSurface = font.render(text, True, black)
     return textSurface, textSurface.get_rect()
 
+font_name = pygame.font.match_font('arial')
+def draw_text(surf, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, green)
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
+
 # Start screen for my game
 def game_intro():
 
@@ -194,12 +203,12 @@ for i in range(8):
     all_active_sprites.add(m)
     enemy.add(m)
 
-running = True
 def main():
 
     pygame.init()
     clock = pygame.time.Clock()
     dt = 0
+    score = 0
 
     while True:
         events = pygame.event.get()
@@ -209,13 +218,15 @@ def main():
 
         hits = pygame.sprite.groupcollide(sprites, enemy, True, True)
         for hit in hits:
+            score += random.randint(1,10)
+            print(score)
             m = Enemy(enemyIMG)
             all_active_sprites.add(m)
             enemy.add(m)
 
         hits = pygame.sprite.groupcollide(sprites, enemy, False, True)
         if hits:
-            return game_intro()
+            quit()
 
         sprites.update(events, dt)
         all_active_sprites.update()
@@ -223,9 +234,14 @@ def main():
         screen.fill(white)
         sprites.draw(screen)
         all_active_sprites.draw(screen)
-        pygame.display.update()
         dt = clock.tick(60)
 
+        pygame.draw.rect(screen,green,(200,150,100,50))
+
+        draw_text(screen, str(score), 18, screen_width / 2, 10)
+
+        pygame.display.update()
+        pygame.display.flip()
 
 
 game_intro()
