@@ -1,122 +1,174 @@
+# Import the pygame module
 import pygame
-import time
 import random
+import time
 import math
-from pygame.math import Vector2
-from os import path
+# Import pygame.locals for easier access to key coordinates
+# Updated to conform to flake8 and black standards
+from pygame.locals import (
+    RLEACCEL,
+    K_w,
+    K_s,
+    K_LEFT,
+    K_RIGHT,
+    K_ESCAPE,
+    KEYDOWN,
+    QUIT,
+    K_a,
+    K_d,
+    MOUSEBUTTONDOWN,
+    K_SPACE,
+)
 
-# Kommando til at finde path til billeder
-img_dir = path.join(path.dirname(__file__), 'Image')
+# Define constants for the screen width and height
+SCREEN_WIDTH = 1200
+SCREEN_HEIGHT = 800
 
-pygame.init()
-
-FPS = 60
-black = [0,0,0]
-white = [255,255,255]
-green = [0,200,0]
-red = [200,0,0]
-
-bright_red = [255,0,0]
-bright_green = [0,255,0]
-
-# Screen settings
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width,screen_height),)
-pygame.display.set_caption('BoxHead')
-clock = pygame.time.Clock()
-
-
-playerImg = pygame.image.load(path.join(img_dir,"mand_0.png"))
-enemyIMG = pygame.image.load(path.join(img_dir,"enemy_1.png"))
-bulletImg = pygame.image.load(path.join(img_dir, "bullet.png"))
-
+# Define a player object by extending pygame.sprite.Sprite
+# The surface drawn on the screen is now an attribute of 'player'
 class Player(pygame.sprite.Sprite):
     def __init__(self):
-        super().__init__()
-        self.image = pygame.Surface((32, 32))
-        self.image.set_colorkey((0, 0, 0))
-        self.image = playerImg
-        self.org_image = self.image.copy()
+        super(Player, self).__init__()
+        self.surf = pygame.Surface((75, 20))
+        self.img = pygame.image.load("Image/invader.png").convert()
+        self.img_copy = self.img
+        self.surf = pygame.transform.scale(self.img, (50,50))
+        self.hp = 3
+        self.score = 0
+        self.direction = 0
         self.angle = 0
-        self.direction = pygame.Vector2(1, 0)
-        self.rect = self.image.get_rect(center=(screen_width/2, screen_height - 30))
-        self.pos = pygame.Vector2(self.rect.center)
-        self.speedy = 0
-        self.speedx = 0
-    def update(self, events, dt):
-        self.speedy = 0
-        self.speedx = 0
-        for e in events:
-            if e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_SPACE:
-                    self.groups()[0].add(Projectile(self.rect.center, self.direction.normalize()))
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_LEFT]:
-            self.angle += 3
-        if pressed[pygame.K_RIGHT]:
-            self.angle -= 3
-        if pressed[pygame.K_w]:
-            self.speedy -= 2
-        if pressed[pygame.K_s]:
-            self.speedy += 2
-        if pressed[pygame.K_a]:
-            self.speedx -= 2
-        if pressed[pygame.K_d]:
-            self.speedx += 2
-
-         # boundary checking
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
+        self.rect = self.surf.get_rect(
+                center=(SCREEN_WIDTH/2, SCREEN_HEIGHT)
+            )
+    def update(self, pressed_keys):
+        if pressed_keys[K_w]:
+            self.rect.move_ip(0, -3)
+        if pressed_keys[K_s]:
+            self.rect.move_ip(0, 3)
+        if pressed_keys[K_a]:
+            self.rect.move_ip(-3, 0)
+        if pressed_keys[K_d]:
+            self.rect.move_ip(3, 0)
+        if pressed_keys[K_LEFT]:
+            self.angle += 5
+        if pressed_keys[K_RIGHT]:
+            self.angle -= 5
+         # Keep player on the screen
         if self.rect.left < 0:
             self.rect.left = 0
-        if self.rect.top < 0:
+        if self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+        if self.rect.top <= 0:
             self.rect.top = 0
-        if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height
+        if self.rect.bottom >= SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+    def get_x_coord(self):
+        return self.rect.centerx
+    def get_y_coord(self):
+        return self.rect.centery
+    def get_coord(self):
+        return (self.rect.centerx,self.rect.centery)
+    def get_width(self):
+        return self.rect.w
+    def get_height(self):
+        return self.rect.h
+    def ifCollide(self, Object1):# works
+        if(
+            self.rect.bottom<=Object1.rect.bottom and
+            self.rect.top>=Object1.rect.top and
+            self.rect.left<=Object1.rect.left and
+            self.rect.right>=Object1.rect.left):
+            self.rect.right= Object1.rect.left
+        elif(
+            self.rect.bottom<=Object1.rect.bottom and
+            self.rect.top>=Object1.rect.top and
+            self.rect.left<=Object1.rect.right and
+            self.rect.right>=Object1.rect.right):
+            self.rect.left= Object1.rect.right
+        elif(
+            self.rect.top<Object1.rect.bottom and
+            self.rect.bottom>Object1.rect.top and
+            self.rect.centery>Object1.rect.centery):
+            self.rect.top= Object1.rect.bottom
 
-        self.direction = pygame.Vector2(1, 0).rotate(-self.angle)
-        self.image = pygame.transform.rotate(self.org_image, self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        elif(
+            self.rect.top<Object1.rect.top and
+            self.rect.bottom>Object1.rect.top and
+            self.rect.centery<Object1.rect.centery
+            ):
+            self.rect.bottom= Object1.rect.top
 
-        self.rect.y += self.speedy
-        self.rect.x += self.speedx
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self,image):
-        super().__init__()
-        self.image = pygame.transform.scale(enemyIMG, (10,10))
-        self.rect = self.image.get_rect()
-
-        # Spawn location for enemies
-        self.rect = self.image.get_rect()
-        self.rect.x = random.randrange(0,800)
-        self.rect.y = random.randrange(0,200)
-        self.speedy = random.randrange(2,3)
-        self.speedx = random.randrange(2,3)
-
+    def __init__(self, hp, size, status):
+        super(Enemy, self).__init__()
+        self.surf = pygame.Surface(size)
+        self.hp = hp
+        self.surf.fill((255, 255, 255))
+        self.status = status
+        x = SCREEN_WIDTH/10
+        y = SCREEN_WIDTH*9/10
+        if(self.status == "boss"):
+            self.rect = self.surf.get_rect(
+            center=(
+                394,
+                87
+            )
+        )
+        else:
+            self.rect = self.surf.get_rect(
+                center=(
+                    random.randint(x, y),
+                    10
+                )
+            )
+        self.speedx = random.randint(-3, 3)
+        self.speedy = random.randint(-3, -1)
+    # Move the sprite based on speed
+    # Remove the sprite when it passes the left edge of the screen
     def update(self):
-        self.rect.x += self.speedx
-        self.rect.y += self.speedy
-        if self.rect.top > screen_height + 10:
-            self.rect.x = random.randrange(0,800)
-            self.rect.y = random.randrange(0,200)
-            self.speedy = random.randrange(2,3)
-            self.speedx = random.randrange(2,3)
-
-         # boundary checking
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
-            self.speedx = -self.speedx
+        self.rect.move_ip(self.speedx, self.speedy)
+         # Keep player on the screen
         if self.rect.left < 0:
-            self.rect.left = 0
             self.speedx = -self.speedx
-        if self.rect.top < 0:
-            self.rect.top = 0
+        if self.rect.right > SCREEN_WIDTH:
+            self.speedx = -self.speedx
+        if self.rect.top <= 0:
             self.speedy = -self.speedy
-        if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height
+        if self.rect.bottom >= SCREEN_HEIGHT:
             self.speedy = -self.speedy
+    def get_x_coord(self):
+        return self.rect.centerx
+    def get_y_coord(self):
+        return self.rect.centery
+    def get_coord(self):
+        return (self.rect.centerx,self.rect.centery)
+    def get_width(self):
+        return self.rect.w
+    def get_height(self):
+        return self.rect.h
+    def ifCollide(self, Object1):# works
+        if(
+            self.rect.bottom<=Object1.rect.bottom and
+            self.rect.top>=Object1.rect.top and
+            self.rect.left<=Object1.rect.left and
+            self.rect.right>=Object1.rect.left):
+            self.speedx= -self.speedx
+        elif(
+            self.rect.bottom<=Object1.rect.bottom and
+            self.rect.top>=Object1.rect.top and
+            self.rect.left<=Object1.rect.right and
+            self.rect.right>=Object1.rect.right):
+            self.speedx= -self.speedx
+        elif(
+            self.rect.top<Object1.rect.top and
+            self.rect.bottom>Object1.rect.top,
+            ):
+            self.speedy= -self.speedy
+        elif(
+            self.rect.top>Object1.rect.top and
+            self.rect.bottom<Object1.rect.top):
+            self.speedy= -self.speedy
 
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, pos, direction):
