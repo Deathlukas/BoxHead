@@ -3,6 +3,8 @@ import pygame
 import random
 import time
 import math
+import sys
+
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
 from pygame.locals import (
@@ -21,8 +23,8 @@ from pygame.locals import (
 )
 
 # Define constants for the screen width and height
-SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 800
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 # Define a player object by extending pygame.sprite.Sprite
 # The surface drawn on the screen is now an attribute of 'player'
@@ -72,7 +74,7 @@ class Player(pygame.sprite.Sprite):
         return self.rect.w
     def get_height(self):
         return self.rect.h
-    def ifCollide(self, Object1):# works
+    def ifCollide(self, Object1):
         if(
             self.rect.bottom<=Object1.rect.bottom and
             self.rect.top>=Object1.rect.top and
@@ -288,7 +290,7 @@ def game1():
         bullets.update()
         #fill screen with black
         screen.fill((0, 0, 0))
-        draw_text('score : '+str(player.score), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH*4/5, 20)
+        draw_text('score : '+str(player.score), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/2, 20)
         draw_text('lives : '+str(player.hp), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/7, 20)
         # Draw all sprites
         playerrot = pygame.transform.rotate(player.surf, player.angle)
@@ -400,7 +402,7 @@ def game2():
         #fill screen with black
         screen.fill((0, 0, 0))
         # Draw all sprites
-        draw_text('score : '+str(player.score), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH*4/5, 20)
+        draw_text('score : '+str(player.score), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/2, 20)
         draw_text('lives : '+str(player.hp), pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/7, 20)
         playerrot = pygame.transform.rotate(player.surf, player.angle)
         playerpos1 =(player.get_x_coord()-playerrot.get_width()/2,
@@ -470,7 +472,7 @@ def main_menu():
     while True:
 
         screen.fill((0,0,0))
-        draw_text('BoxHead', pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/3+30, SCREEN_HEIGHT/3)
+        draw_text('BoxHead', pygame.font.SysFont(None, 50), (255, 255, 255), screen, SCREEN_WIDTH/3+65, SCREEN_HEIGHT/3)
 
         mx, my = pygame.mouse.get_pos()
 
@@ -484,8 +486,8 @@ def main_menu():
                 game2()
         pygame.draw.rect(screen, (255, 255, 255), button_1)
         pygame.draw.rect(screen, (255, 255, 255), button_2)
-        draw_text('level1', pygame.font.SysFont(None, 50), (0, 0, 0), screen, 150, 410)
-        draw_text('level2', pygame.font.SysFont(None, 50), (0, 0, 0), screen, 550, 410)
+        draw_text('Level 1', pygame.font.SysFont(None, 50), (0, 0, 0), screen, 140, 410)
+        draw_text('Level 2', pygame.font.SysFont(None, 50), (0, 0, 0), screen, 540, 410)
         click = False
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -507,5 +509,6 @@ pygame.init()
 # Create the screen object
 # The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption('BoxHead')
 clock = pygame.time.Clock()
 main_menu()
